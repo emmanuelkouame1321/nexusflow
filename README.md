@@ -1,4 +1,3 @@
-```markdown
 # NexusFlow
 
 **ERP / CRM full‑stack** conçu pour les PME et startups.  
@@ -11,7 +10,7 @@ Centralisez la gestion de vos clients, devis, factures, projets et tâches en un
 
 ---
 
-## ✨ Fonctionnalités
+## Fonctionnalités
 
 - **CRM** – Gestion des clients et contacts, pipeline commercial (kanban)
 - **Devis & Facturation** – Création de devis avec lignes dynamiques, conversion en facture, suivi des paiements
@@ -22,7 +21,7 @@ Centralisez la gestion de vos clients, devis, factures, projets et tâches en un
 
 ---
 
-## 🧱 Stack technique
+## Stack technique
 
 | Couche           | Technologie                  |
 | ---------------- | ---------------------------- |
@@ -36,7 +35,8 @@ Centralisez la gestion de vos clients, devis, factures, projets et tâches en un
 
 ---
 
-## 📁 Structure du monorepo
+## Structure du monorepo
+
 ```
 
 nexusflow/
@@ -48,11 +48,11 @@ nexusflow/
 ├── package.json ← Workspaces npm
 └── …
 
-````
+```
 
 ---
 
-## ⚙️ Prérequis
+## Prérequis
 
 - **Node.js** ≥ 20 LTS
 - **npm** ≥ 10
@@ -61,14 +61,14 @@ nexusflow/
 
 ---
 
-## 🚀 Démarrage rapide
+## Démarrage rapide
 
 ### 1. Cloner le dépôt
 
 ```bash
 git clone git@github.com:emmanuelkouame1321/nexusflow.git
 cd nexusflow
-````
+```
 
 ### 2. Installer les dépendances
 
@@ -104,7 +104,7 @@ npm run dev
 
 ---
 
-## 📜 Scripts utiles
+## Scripts utiles
 
 | Commande                                      | Description                                |
 | --------------------------------------------- | ------------------------------------------ |
@@ -117,22 +117,18 @@ npm run dev
 
 ---
 
-## 🛠️ Déploiement
+## Déploiement
 
 La procédure de déploiement sur **DigitalOcean** (Droplet, Nginx, PM2) sera documentée dans le dossier `docs/`.
 
 ---
 
-## 🤝 Contribution
+## Contribution
 
 Les contributions sont les bienvenues ! Consultez le [guide de contribution](./CONTRIBUTING.md) avant d’ouvrir une pull request.
 
 ---
 
-## 📄 Licence
+## Licence
 
 Ce projet est sous licence MIT. Voir le fichier [LICENSE](./LICENSE).
-
-```
-
-```
