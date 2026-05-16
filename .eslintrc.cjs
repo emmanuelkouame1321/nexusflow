@@ -28,5 +28,8 @@ module.exports = {
     'consistent-return': 'off',
     'no-underscore-dangle': 'off',
     'no-unused-vars': ['warn', { argsIgnorePattern: '^_' }],
+    'no-param-reassign': 'off',
+    'no-use-before-define': 'off',
+    'no-nested-ternary': 'off',
   },
 };

@@ -12,7 +12,7 @@ function handleError(error, res) {
 
 export async function create(req, res, next) {
   try {
-    const quote = await quoteService.createQuote(req.body);
+    const quote = await quoteService.createQuote(req.body, req.user.id);
     return res.status(201).json(quote);
   } catch (error) {
     if (!handleError(error, res)) next(error);

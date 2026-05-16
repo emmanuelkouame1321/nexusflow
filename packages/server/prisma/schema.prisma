@@ -31,20 +31,24 @@ model RolePermission {
 }
 
 model User {
-  id           Int      @id @default(autoincrement())
-  firstName    String
-  lastName     String
-  email        String   @unique
-  passwordHash String
-  roleId       Int
-  role         Role     @relation(fields: [roleId], references: [id])
-  refreshToken String?
-  projects     ProjectMember[]   // ← ajouté
-  taskAssign   TaskAssignee[]    // ← ajouté
-  taskComments TaskComment[]     // ← ajouté
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id            Int              @id @default(autoincrement())
+  firstName     String
+  lastName      String
+  email         String           @unique
+  passwordHash  String
+  roleId        Int
+  role          Role             @relation(fields: [roleId], references: [id])
+  refreshToken  String?
+  projects      ProjectMember[]
+  taskAssign    TaskAssignee[]
+  taskComments  TaskComment[]
+  quotes        Quote[]          // relation inverse ajoutée
+  notifications Notification[]
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
 }
+
+
 
 // ================== CLIENTS ==================
 model Client {
@@ -89,6 +93,7 @@ model Product {
 }
 
 // ================== DEVIS ==================
+
 model Quote {
   id         Int         @id @default(autoincrement())
   reference  String      @unique
@@ -98,6 +103,8 @@ model Quote {
   validUntil DateTime?
   clientId   Int
   client     Client      @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  createdBy  Int?        // ← ID de l'utilisateur qui a créé le devis
+  creator    User?       @relation(fields: [createdBy], references: [id])
   items      QuoteItem[]
   invoices   Invoice[]
   createdAt  DateTime    @default(now())
@@ -227,4 +234,15 @@ model TaskDependency {
   dependsOnTaskId  Int
   task             Task  @relation("TaskDepends", fields: [taskId], references: [id], onDelete: Cascade)
   dependsOn        Task  @relation("TaskDependedOn", fields: [dependsOnTaskId], references: [id], onDelete: Cascade)
+}
+
+model Notification {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      String
+  message   String
+  read      Boolean  @default(false)
+  metadata  Json?
+  createdAt DateTime @default(now())
 }

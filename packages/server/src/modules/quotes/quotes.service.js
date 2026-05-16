@@ -1,4 +1,5 @@
 import prisma from '../../lib/prisma.js';
+import { createNotification } from '../notifications/notifications.service.js';
 
 /**
  * Génère une référence unique pour un devis.
@@ -12,7 +13,7 @@ async function generateReference() {
 /**
  * Crée un devis avec ses lignes.
  */
-export async function createQuote(data) {
+export async function createQuote(data, userId) {
   const { clientId, validUntil, items } = data;
 
   // Calcul des totaux
@@ -39,6 +40,7 @@ export async function createQuote(data) {
     data: {
       reference,
       clientId,
+      createdBy: userId,
       validUntil: validUntil ? new Date(validUntil) : null,
       totalHT,
       totalTTC,
@@ -96,11 +98,23 @@ export async function findById(id) {
  * Met à jour le statut d'un devis.
  */
 export async function updateStatus(id, status) {
-  return prisma.quote.update({
+  const quote = await prisma.quote.update({
     where: { id },
     data: { status },
     include: { items: true, client: true },
   });
+
+  // Notifier le créateur si le devis est accepté
+  if (status === 'accepted' && quote.createdBy) {
+    await createNotification(
+      quote.createdBy,
+      'quote_accepted',
+      `Le devis ${quote.reference} a été accepté.`,
+      { quoteId: quote.id },
+    );
+  }
+
+  return quote;
 }
 
 /**

@@ -2,15 +2,22 @@ import Joi from 'joi';
 
 export const createTaskSchema = Joi.object({
   title: Joi.string().min(2).max(200).required(),
-  description: Joi.string().max(2000).allow(''),
+  description: Joi.string().max(2000).allow('', null),
   projectId: Joi.number().integer().required(),
-  parentTaskId: Joi.number().integer().allow(null),
+  parentTaskId: Joi.number().integer().optional(),
   priority: Joi.string().valid('low', 'medium', 'high', 'urgent').default('medium'),
-  dueDate: Joi.date().iso().allow(null),
+  dueDate: Joi.date().iso().optional(),
   estimatedHours: Joi.number().precision(1).min(0).allow(null),
-  assigneeIds: Joi.array().items(Joi.number().integer()),
+  assigneeIds: Joi.array().items(Joi.number().integer()).optional(),
 });
 
-export const updateTaskStatusSchema = Joi.object({
-  status: Joi.string().valid('todo', 'in_progress', 'in_review', 'done').required(),
-});
+export const updateTaskSchema = Joi.object({
+  title: Joi.string().min(2).max(200),
+  description: Joi.string().max(2000).allow('', null),
+  status: Joi.string().valid('todo', 'in_progress', 'in_review', 'done'),
+  priority: Joi.string().valid('low', 'medium', 'high', 'urgent'),
+  dueDate: Joi.date().iso().optional(),
+  estimatedHours: Joi.number().precision(1).min(0).allow(null),
+  actualHours: Joi.number().precision(1).min(0).allow(null),
+  assigneeIds: Joi.array().items(Joi.number().integer()).optional(),
+}).min(1);

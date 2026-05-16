@@ -6,7 +6,7 @@ import Joi from 'joi';
 const fileName = fileURLToPath(import.meta.url);
 const dirName = path.dirname(fileName);
 
-dotenv.config({ path: path.resolve(dirName, '../../../.env') });
+dotenv.config({ path: path.resolve(dirName, '../../../../.env') });
 
 // Le reste du code (Joi validation, export) ne change pas.
 

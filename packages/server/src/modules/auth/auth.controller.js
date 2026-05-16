@@ -7,8 +7,13 @@ export async function register(req, res, next) {
   try {
     const { firstName, lastName, email, password, roleId } = req.body;
     const user = await authService.createUser({ firstName, lastName, email, password, roleId });
-    return res.status(201).json({ user: { id: user.id, email: user.email, role: user.role.name } });
+    res.status(201).json({ user: { id: user.id, email: user.email, role: user.role.name } });
   } catch (error) {
+    if (error.code === 'P2002') {
+      const target = error.meta?.target;
+      const champ = target ? target.join(', ') : 'email';
+      return res.status(409).json({ message: `Cet ${champ} est déjà utilisé.` });
+    }
     next(error);
   }
 }
