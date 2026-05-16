@@ -1,0 +1,230 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ================== AUTH ==================
+model Role {
+  id          Int              @id @default(autoincrement())
+  name        String           @unique
+  users       User[]
+  permissions RolePermission[]
+}
+
+model Permission {
+  id    Int               @id @default(autoincrement())
+  name  String            @unique
+  roles RolePermission[]
+}
+
+model RolePermission {
+  roleId       Int
+  permissionId Int
+  role         Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@id([roleId, permissionId])
+}
+
+model User {
+  id           Int      @id @default(autoincrement())
+  firstName    String
+  lastName     String
+  email        String   @unique
+  passwordHash String
+  roleId       Int
+  role         Role     @relation(fields: [roleId], references: [id])
+  refreshToken String?
+  projects     ProjectMember[]   // ← ajouté
+  taskAssign   TaskAssignee[]    // ← ajouté
+  taskComments TaskComment[]     // ← ajouté
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+// ================== CLIENTS ==================
+model Client {
+  id        Int       @id @default(autoincrement())
+  name      String
+  email     String    @unique
+  phone     String    @unique
+  address   String?
+  sector    String?
+  tags      String[]
+  contacts  Contact[]
+  quotes    Quote[]
+  invoices  Invoice[]
+  projects  Project[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
+model Contact {
+  id        Int     @id @default(autoincrement())
+  firstName String
+  lastName  String
+  email     String  @unique
+  phone     String  @unique
+  isPrimary Boolean @default(false)
+  clientId  Int
+  client    Client  @relation(fields: [clientId], references: [id], onDelete: Cascade)
+}
+
+// ================== PRODUITS ==================
+model Product {
+  id           Int           @id @default(autoincrement())
+  name         String
+  description  String?
+  unitPrice    Float
+  taxRate      Float         @default(0)
+  unit         String        @default("unité")
+  quoteItems   QuoteItem[]
+  invoiceItems InvoiceItem[]
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+}
+
+// ================== DEVIS ==================
+model Quote {
+  id         Int         @id @default(autoincrement())
+  reference  String      @unique
+  status     String      @default("draft")
+  totalHT    Float       @default(0)
+  totalTTC   Float       @default(0)
+  validUntil DateTime?
+  clientId   Int
+  client     Client      @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  items      QuoteItem[]
+  invoices   Invoice[]
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+}
+
+model QuoteItem {
+  id          Int      @id @default(autoincrement())
+  description String?
+  quantity    Int      @default(1)
+  unitPrice   Float
+  discount    Float    @default(0)
+  taxRate     Float    @default(0)
+  quoteId     Int
+  quote       Quote    @relation(fields: [quoteId], references: [id], onDelete: Cascade)
+  productId   Int?
+  product     Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+}
+
+// ================== FACTURES ==================
+model Invoice {
+  id         Int           @id @default(autoincrement())
+  reference  String        @unique
+  status     String        @default("draft")
+  totalHT    Float         @default(0)
+  totalTTC   Float         @default(0)
+  dueDate    DateTime?
+  clientId   Int
+  client     Client        @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  quoteId    Int?
+  quote      Quote?        @relation(fields: [quoteId], references: [id], onDelete: SetNull)
+  items      InvoiceItem[]
+  payments   Payment[]
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
+}
+
+model InvoiceItem {
+  id          Int      @id @default(autoincrement())
+  description String?
+  quantity    Int      @default(1)
+  unitPrice   Float
+  discount    Float    @default(0)
+  taxRate     Float    @default(0)
+  invoiceId   Int
+  invoice     Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  productId   Int?
+  product     Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+}
+
+model Payment {
+  id          Int      @id @default(autoincrement())
+  amount      Float
+  date        DateTime @default(now())
+  method      String
+  reference   String?
+  invoiceId   Int
+  invoice     Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+}
+
+// ================== PROJETS ==================
+model Project {
+  id          Int             @id @default(autoincrement())
+  name        String
+  description String?
+  startDate   DateTime?
+  endDate     DateTime?
+  budget      Float?
+  status      String          @default("planned")
+  clientId    Int?
+  client      Client?         @relation(fields: [clientId], references: [id], onDelete: SetNull)
+  members     ProjectMember[]
+  tasks       Task[]
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+}
+
+model ProjectMember {
+  id        Int      @id @default(autoincrement())
+  projectId Int
+  userId    Int
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Task {
+  id              Int             @id @default(autoincrement())
+  title           String
+  description     String?
+  status          String          @default("todo")
+  priority        String          @default("medium")
+  dueDate         DateTime?
+  estimatedHours  Float?
+  actualHours     Float?
+  projectId       Int
+  project         Project         @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  parentTaskId    Int?
+  parentTask      Task?           @relation("TaskHierarchy", fields: [parentTaskId], references: [id], onDelete: SetNull)
+  subTasks        Task[]          @relation("TaskHierarchy")
+  assignees       TaskAssignee[]
+  comments        TaskComment[]
+  dependencies    TaskDependency[] @relation("TaskDepends")
+  dependents      TaskDependency[] @relation("TaskDependedOn")
+}
+
+model TaskAssignee {
+  id     Int   @id @default(autoincrement())
+  taskId Int
+  userId Int
+  task   Task  @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  user   User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model TaskComment {
+  id        Int      @id @default(autoincrement())
+  text      String
+  taskId    Int
+  userId    Int
+  task      Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+}
+
+model TaskDependency {
+  id               Int   @id @default(autoincrement())
+  taskId           Int
+  dependsOnTaskId  Int
+  task             Task  @relation("TaskDepends", fields: [taskId], references: [id], onDelete: Cascade)
+  dependsOn        Task  @relation("TaskDependedOn", fields: [dependsOnTaskId], references: [id], onDelete: Cascade)
+}

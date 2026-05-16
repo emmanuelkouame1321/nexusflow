@@ -1,0 +1,13 @@
+{
+  "name": "@nexusflow/shared",
+  "version": "1.0.0",
+  "description": "Shared constants, validators and utilities for NexusFlow",
+  "type": "module",
+  "main": "./src/index.js",
+  "exports": "./src/index.js",
+  "scripts": {},
+  "dependencies": {
+    "joi": "^17.13.0",
+    "dayjs": "^1.11.10"
+  }
+}
