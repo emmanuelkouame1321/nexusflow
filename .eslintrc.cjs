@@ -31,5 +31,6 @@ module.exports = {
     'no-param-reassign': 'off',
     'no-use-before-define': 'off',
     'no-nested-ternary': 'off',
+    'no-restricted-syntax': 'off',
   },
 };

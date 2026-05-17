@@ -44,6 +44,7 @@ model User {
   taskComments  TaskComment[]
   quotes        Quote[]          // relation inverse ajoutée
   notifications Notification[]
+  uploads Attachment[]
   createdAt     DateTime         @default(now())
   updatedAt     DateTime         @updatedAt
 }
@@ -178,6 +179,7 @@ model Project {
   client      Client?         @relation(fields: [clientId], references: [id], onDelete: SetNull)
   members     ProjectMember[]
   tasks       Task[]
+  attachments Attachment[]
   createdAt   DateTime        @default(now())
   updatedAt   DateTime        @updatedAt
 }
@@ -208,6 +210,7 @@ model Task {
   comments        TaskComment[]
   dependencies    TaskDependency[] @relation("TaskDepends")
   dependents      TaskDependency[] @relation("TaskDependedOn")
+  attachments Attachment[]
 }
 
 model TaskAssignee {
@@ -234,6 +237,22 @@ model TaskDependency {
   dependsOnTaskId  Int
   task             Task  @relation("TaskDepends", fields: [taskId], references: [id], onDelete: Cascade)
   dependsOn        Task  @relation("TaskDependedOn", fields: [dependsOnTaskId], references: [id], onDelete: Cascade)
+}
+
+model Attachment {
+  id        Int      @id @default(autoincrement())
+  filename  String
+  originalName String
+  mimetype  String
+  size      Int
+  url       String
+  projectId Int?
+  project   Project? @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  taskId    Int?
+  task      Task?    @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  uploadedBy Int?
+  uploader  User?    @relation(fields: [uploadedBy], references: [id], onDelete: SetNull)
+  createdAt DateTime @default(now())
 }
 
 model Notification {

@@ -1,13 +1,24 @@
 import { Router } from 'express';
 import { createInvoiceSchema, addPaymentSchema } from '@nexusflow/shared';
 import * as invoiceController from './invoices.controller.js';
+import * as invoiceService from './invoices.service.js';
 import { authenticate } from '../../middlewares/auth.middleware.js';
 import { authorize } from '../../middlewares/authorize.middleware.js';
 import { validate } from '../../middlewares/validate.middleware.js';
+import { sendInvoiceEmail, sendReminderEmail } from '../../utils/mailer.js';
+import { generatePDF } from '../../utils/pdfGenerator.js';
 
 const router = Router();
 router.use(authenticate);
 
+// --- Fonction utilitaire pour extraire l'email du client (ou celui fourni) ---
+function getEmail(req, invoice) {
+  if (req.body.email) return req.body.email;
+  if (invoice.client && invoice.client.email) return invoice.client.email;
+  return null;
+}
+
+// --- CRUD de base ---
 router.get('/', invoiceController.getAll);
 router.get('/:id', invoiceController.getOne);
 router.post(
@@ -24,5 +35,68 @@ router.post(
 );
 router.get('/:id/balance', invoiceController.getBalance);
 router.delete('/:id', authorize('admin'), invoiceController.remove);
+
+// --- Envoi par email ---
+router.post('/:id/send', authorize('admin', 'manager', 'commercial'), async (req, res, next) => {
+  try {
+    const invoice = await invoiceService.findById(+req.params.id);
+    if (!invoice) return res.status(404).json({ message: 'Facture introuvable.' });
+
+    const to = getEmail(req, invoice);
+    if (!to)
+      return res
+        .status(400)
+        .json({ message: 'Aucune adresse email disponible pour cette facture.' });
+
+    await sendInvoiceEmail(to, invoice);
+    res.json({ message: `Facture envoyée par email à ${to}.` });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// --- Relance par email ---
+router.post('/:id/remind', authorize('admin', 'manager'), async (req, res, next) => {
+  try {
+    const invoice = await invoiceService.findById(+req.params.id);
+    if (!invoice) return res.status(404).json({ message: 'Facture introuvable.' });
+
+    const to = getEmail(req, invoice);
+    if (!to)
+      return res
+        .status(400)
+        .json({ message: 'Aucune adresse email disponible pour cette facture.' });
+
+    const balance = await invoiceService.getBalance(invoice.id);
+    await sendReminderEmail(to, invoice, balance.balance);
+    res.json({ message: `Relance envoyée par email à ${to}.` });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// --- Téléchargement PDF ---
+router.get('/:id/pdf', async (req, res, next) => {
+  try {
+    const invoice = await invoiceService.findById(+req.params.id);
+    if (!invoice) return res.status(404).json({ message: 'Facture introuvable.' });
+
+    const pdf = await generatePDF('invoice.html', {
+      reference: invoice.reference,
+      clientName: invoice.client?.name || 'N/A',
+      date: new Date(invoice.createdAt).toLocaleDateString('fr-FR'),
+      dueDate: invoice.dueDate ? new Date(invoice.dueDate).toLocaleDateString('fr-FR') : 'N/A',
+      totalHT: invoice.totalHT.toFixed(2),
+      totalTTC: invoice.totalTTC.toFixed(2),
+      status: invoice.status,
+    });
+
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename=facture-${invoice.reference}.pdf`);
+    res.send(pdf);
+  } catch (error) {
+    next(error);
+  }
+});
 
 export default router;

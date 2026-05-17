@@ -98,12 +98,11 @@ export async function findById(id) {
     include: {
       items: true,
       payments: true,
-      client: true,
+      client: { select: { id: true, name: true, email: true } },
       quote: true,
     },
   });
 }
-
 /**
  * Ajoute un paiement à une facture
  */

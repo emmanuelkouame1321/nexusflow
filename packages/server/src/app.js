@@ -4,6 +4,7 @@ import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
 import rateLimit from 'express-rate-limit';
+import path from 'node:path';
 import authRoutes from './modules/auth/auth.routes.js';
 import clientRoutes from './modules/clients/clients.routes.js';
 import productRoutes from './modules/products/products.routes.js';
@@ -13,6 +14,7 @@ import projectRoutes from './modules/projects/projects.routes.js';
 import taskRoutes from './modules/tasks/tasks.routes.js';
 import dashboardRoutes from './modules/dashboard/dashboard.routes.js';
 import notificationRoutes from './modules/notifications/notifications.routes.js';
+import attachmentRoutes from './modules/attachments/attachments.routes.js';
 
 const app = express();
 
@@ -25,6 +27,7 @@ app.use(cookieParser());
 app.use(rateLimit({ windowMs: 15 * 60 * 1000, max: 100 })); // 100 requêtes par 15 min
 
 // Routes
+app.use('/uploads', express.static(path.resolve(process.cwd(), 'uploads')));
 app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/clients', clientRoutes);
 app.use('/api/v1/products', productRoutes);
@@ -34,6 +37,7 @@ app.use('/api/v1/projects', projectRoutes);
 app.use('/api/v1/tasks', taskRoutes);
 app.use('/api/v1/dashboard', dashboardRoutes);
 app.use('/api/v1/notifications', notificationRoutes);
+app.use('/api/v1/attachments', attachmentRoutes);
 
 // Middleware d'erreur (provisoire)
 // eslint-disable-next-line no-unused-vars
