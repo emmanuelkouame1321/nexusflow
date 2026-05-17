@@ -36,4 +36,7 @@ router.get(
   dashboardController.getOverdueProjects,
 );
 
+router.get('/export/csv', authorize('admin', 'manager'), dashboardController.exportCSV);
+router.get('/export/pdf', authorize('admin', 'manager'), dashboardController.exportPDF);
+
 export default router;
