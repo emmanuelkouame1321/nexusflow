@@ -13,9 +13,13 @@ Centralisez la gestion de vos clients, devis, factures, projets et tâches en un
 ## Fonctionnalités
 
 - **CRM** – Gestion des clients et contacts, pipeline commercial (kanban)
-- **Devis & Facturation** – Création de devis avec lignes dynamiques, conversion en facture, suivi des paiements
-- **Projets & Tâches** – Kanban, calendrier, dépendances, commentaires en temps réel
+- **Devis & Facturation** – Création de devis avec lignes dynamiques, conversion en facture, suivi des paiements, relances par email
+- **Projets & Tâches** – Kanban, calendrier, dépendances, commentaires en temps réel, pièces jointes
 - **Tableaux de bord** – KPIs personnalisables, graphiques, exports CSV/PDF
+- **Notifications en temps réel** – WebSocket (Socket.io), alertes pour les devis acceptés, assignations et commentaires
+- **Emails professionnels** – Templates responsives, envoi via SMTP (Brevo, Ethereal) pour devis, factures et relances
+- **Génération de PDF** – Documents propres (devis, factures) avec Puppeteer
+- **Upload de fichiers** – Pièces jointes pour les projets et les tâches (images, PDF, documents)
 - **Authentification sécurisée** – JWT (access + refresh tokens), cookies httpOnly, contrôle d’accès par rôles (RBAC)
 - **API REST** – Prête pour une intégration frontale ou mobile, documentée et versionnée
 
@@ -31,7 +35,9 @@ Centralisez la gestion de vos clients, devis, factures, projets et tâches en un
 | ORM              | Prisma 6                     |
 | Authentification | JWT + cookies httpOnly       |
 | Temps réel       | Socket.io                    |
-| Emails / PDF     | Nodemailer, Puppeteer        |
+| Emails           | Nodemailer + templates HTML  |
+| PDF              | Puppeteer                    |
+| Uploads          | Multer                       |
 
 ---
 
@@ -45,6 +51,7 @@ nexusflow/
 │ ├── client/ ← Frontend React + Vite
 │ └── shared/ ← Constantes, validateurs Joi
 ├── database/ ← Scripts SQL additionnels
+├── uploads/ ← Fichiers uploadés
 ├── package.json ← Workspaces npm
 └── …
 
