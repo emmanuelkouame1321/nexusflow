@@ -7,7 +7,7 @@
   "exports": "./src/index.js",
   "scripts": {},
   "dependencies": {
-    "joi": "^17.13.0",
-    "dayjs": "^1.11.10"
+    "dayjs": "^1.11.10",
+    "joi": "^17.13.3"
   }
 }

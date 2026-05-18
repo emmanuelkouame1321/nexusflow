@@ -24,7 +24,13 @@ app.use(cors({ origin: process.env.CORS_ORIGIN, credentials: true }));
 app.use(morgan('dev'));
 app.use(express.json());
 app.use(cookieParser());
-app.use(rateLimit({ windowMs: 15 * 60 * 1000, max: 100 })); // 100 requêtes par 15 min
+app.use(
+  rateLimit({
+    windowMs: 1 * 60 * 1000, // 1 minute
+    max: process.env.NODE_ENV === 'development' ? 1000 : 100, // illimité en dev
+    message: { message: 'Trop de requêtes, veuillez réessayer plus tard.' },
+  }),
+);
 
 // Routes
 app.use('/uploads', express.static(path.resolve(process.cwd(), 'uploads')));

@@ -1,122 +1,94 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import heroImg from './assets/hero.png'
-import './App.css'
+import { useEffect, useState } from 'react';
+import { BrowserRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom';
 
-function App() {
-  const [count, setCount] = useState(0)
+// Layouts
+import AuthLayout from './layouts/AuthLayout';
+import AppLayout from './layouts/AppLayout';
 
-  return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.jsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
+// Pages (certaines sont encore des placeholders, nous les compléterons)
+import Login from './pages/auth/Login';
+import Dashboard from './pages/dashboard/Dashboard';
+import ClientsList from './pages/clients/ClientsList';
+import ClientDetail from './pages/clients/ClientDetail';
+import QuotesList from './pages/quotes/QuotesList';
+import QuoteDetail from './pages/quotes/QuoteDetail';
+import InvoicesList from './pages/invoices/InvoicesList';
+import InvoiceDetail from './pages/invoices/InvoiceDetail';
+import ProjectsList from './pages/projects/ProjectsList';
+import ProjectDetail from './pages/projects/ProjectDetail';
+import Notifications from './pages/notifications/Notifications';
+import Settings from './pages/settings/Settings';
+import Emails from './pages/emails/Emails';
+import ProductsList from './pages/products/ProductsList';
 
-      <div className="ticks"></div>
+// Store d'authentification
+import { useAuthStore } from './store/useAuthStore';
 
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
+// --------------------------------------------------
+// Composant ProtectedLayout : vérifie l'authentification
+// --------------------------------------------------
+function ProtectedLayout() {
+  const { isAuthenticated, fetchUser } = useAuthStore();
+  const [loading, setLoading] = useState(true);
 
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
-  )
+  useEffect(() => {
+    let cancelled = false;
+    const checkAuth = async () => {
+      await fetchUser();
+      if (!cancelled) setLoading(false);
+    };
+    checkAuth();
+    return () => { cancelled = true; };
+  }, [fetchUser]);
+
+  // Spinner pendant la vérification
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+      </div>
+    );
+  }
+
+  // Si non authentifié, rediriger vers /login
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+
+  // Authentifié : afficher le layout principal avec la sidebar
+  return <AppLayout />;
 }
 
-export default App
+// --------------------------------------------------
+// Composant principal App
+// --------------------------------------------------
+export default function App() {
+  return (
+    <BrowserRouter>
+      <Routes>
+        {/* Routes publiques : pas de sidebar, juste la carte d'authentification */}
+        <Route element={<AuthLayout />}>
+          <Route path="/login" element={<Login />} />
+        </Route>
+
+        {/* Routes protégées : vérification auth + layout avec sidebar */}
+        <Route element={<ProtectedLayout />}>
+          <Route path="/" element={<Navigate to="/dashboard" replace />} />
+          <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/clients" element={<ClientsList />} />
+          <Route path="/clients/:id" element={<ClientDetail />} />
+          <Route path="/quotes" element={<QuotesList />} />
+          <Route path="/quotes/:id" element={<QuoteDetail />} />
+          <Route path="/invoices" element={<InvoicesList />} />
+          <Route path="/invoices/:id" element={<InvoiceDetail />} />
+          <Route path="/projects" element={<ProjectsList />} />
+          <Route path="/projects/:id" element={<ProjectDetail />} />
+          <Route path="/notifications" element={<Notifications />} />
+          <Route path="/settings" element={<Settings />} />
+          <Route path="/emails" element={<Emails />} />
+          <Route path="/products" element={<ProductsList />} />
+        </Route>
+      </Routes>
+    </BrowserRouter>
+  );
+}
