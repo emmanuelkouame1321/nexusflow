@@ -122,8 +122,8 @@ export default function SalesPipeline() {
 
 function DropZone({ id, quotes }) {
   return (
-    <div className="bg-gray-50 rounded-lg sm:rounded-xl border border-gray-200 p-2 sm:p-3 flex flex-col min-h-[140px] sm:min-h-[200px] transition-colors hover:border-gray-300">
-      <div className="flex items-center justify-between mb-2 sm:mb-3">
+    <div className="bg-gray-50 rounded-lg sm:rounded-xl border border-gray-200 p-2 sm:p-3 flex flex-col max-h-[16rem]">
+      <div className="flex items-center justify-between mb-2 sm:mb-3 flex-shrink-0">
         <h4 className="font-semibold text-xs sm:text-sm">
           <StatusBadge status={id} size="sm" />
         </h4>
@@ -131,12 +131,14 @@ function DropZone({ id, quotes }) {
           {quotes.length}
         </span>
       </div>
-      <div className="flex-1 space-y-1.5 sm:space-y-2">
+      <div className="flex-1 overflow-y-auto scrollbar-none space-y-1.5 sm:space-y-2 pr-1">
         {quotes.map((quote) => (
           <SortableQuote key={quote.id} quote={quote} />
         ))}
         {quotes.length === 0 && (
-          <p className="text-[10px] sm:text-xs text-gray-400 text-center py-4 sm:py-6">Aucun devis</p>
+          <p className="text-[10px] sm:text-xs text-gray-400 text-center py-4 sm:py-6">
+            Aucun devis
+          </p>
         )}
       </div>
     </div>

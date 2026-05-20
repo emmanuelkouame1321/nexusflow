@@ -11,10 +11,12 @@ import { generatePDF } from '../../utils/pdfGenerator.js';
 const router = Router();
 router.use(authenticate);
 
-// --- Fonction utilitaire pour extraire l'email du client (ou celui fourni) ---
 function getEmail(req, invoice) {
+  // Si un email est fourni dans la requête, l'utiliser
   if (req.body.email) return req.body.email;
-  if (invoice.client && invoice.client.email) return invoice.client.email;
+  // Sinon, essayer de récupérer l'email du client, mais vérifier que le client existe
+  if (invoice.client?.email) return invoice.client.email;
+  // Si rien n'est trouvé, retourner null
   return null;
 }
 
@@ -37,16 +39,36 @@ router.get('/:id/balance', invoiceController.getBalance);
 router.delete('/:id', authorize('admin'), invoiceController.remove);
 
 // --- Envoi par email ---
+// Envoi de la facture par email
 router.post('/:id/send', authorize('admin', 'manager', 'commercial'), async (req, res, next) => {
   try {
     const invoice = await invoiceService.findById(+req.params.id);
     if (!invoice) return res.status(404).json({ message: 'Facture introuvable.' });
 
-    const to = getEmail(req, invoice);
+    const to = req.body.email || (invoice.client && invoice.client.email);
     if (!to)
       return res
         .status(400)
         .json({ message: 'Aucune adresse email disponible pour cette facture.' });
+
+    // 🔍 Logs de debug
+    console.log('───── Envoi facture ─────');
+    console.log(
+      'Email fourni (req.body.email) :',
+      req.body.email,
+      `(type: ${typeof req.body.email})`,
+    );
+    console.log(
+      'Email client (BDD)           :',
+      invoice.client?.email,
+      `(type: ${typeof invoice.client?.email})`,
+    );
+    console.log('Destinataire final           :', to, `(type: ${typeof to})`);
+    console.log('Sujet                        :', `Facture ${invoice.reference}`);
+    console.log('Référence                    :', invoice.reference);
+    console.log('Montant TTC                  :', invoice.totalTTC);
+    console.log('Client                       :', invoice.client?.name);
+    console.log('─────────────────────────');
 
     await sendInvoiceEmail(to, invoice);
     res.json({ message: `Facture envoyée par email à ${to}.` });
@@ -55,19 +77,39 @@ router.post('/:id/send', authorize('admin', 'manager', 'commercial'), async (req
   }
 });
 
-// --- Relance par email ---
+// Relance par email
 router.post('/:id/remind', authorize('admin', 'manager'), async (req, res, next) => {
   try {
     const invoice = await invoiceService.findById(+req.params.id);
     if (!invoice) return res.status(404).json({ message: 'Facture introuvable.' });
 
-    const to = getEmail(req, invoice);
+    const to = req.body.email || (invoice.client && invoice.client.email);
     if (!to)
       return res
         .status(400)
         .json({ message: 'Aucune adresse email disponible pour cette facture.' });
 
     const balance = await invoiceService.getBalance(invoice.id);
+
+    // 🔍 Logs de debug
+    console.log('───── Relance facture ─────');
+    console.log(
+      'Email fourni (req.body.email) :',
+      req.body.email,
+      `(type: ${typeof req.body.email})`,
+    );
+    console.log(
+      'Email client (BDD)           :',
+      invoice.client?.email,
+      `(type: ${typeof invoice.client?.email})`,
+    );
+    console.log('Destinataire final           :', to, `(type: ${typeof to})`);
+    console.log('Sujet                        :', `Relance facture ${invoice.reference}`);
+    console.log('Référence                    :', invoice.reference);
+    console.log('Solde dû                     :', balance.balance);
+    console.log('Client                       :', invoice.client?.name);
+    console.log('──────────────────────────');
+
     await sendReminderEmail(to, invoice, balance.balance);
     res.json({ message: `Relance envoyée par email à ${to}.` });
   } catch (error) {

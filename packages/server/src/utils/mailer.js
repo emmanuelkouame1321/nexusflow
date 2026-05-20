@@ -81,7 +81,7 @@ export async function sendMail({ to, subject, html }) {
       );
     }
   } else {
-    console.log(`✅ Email envoyé avec succès à ${to} via ${env.smtp.host}`);
+    console.log(`Email envoyé avec succès à ${to} via ${env.smtp.host}`);
   }
 }
 

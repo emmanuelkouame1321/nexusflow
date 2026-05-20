@@ -20,15 +20,27 @@ export async function createNotification(userId, type, message, metadata = null)
   return notification;
 }
 
-export async function getUserNotifications(userId, onlyUnread = false) {
-  return prisma.notification.findMany({
-    where: {
-      userId,
-      ...(onlyUnread ? { read: false } : {}),
-    },
-    orderBy: { createdAt: 'desc' },
-    take: 50,
-  });
+export async function getUserNotifications(userId, onlyUnread = false, page = 1, limit = 20) {
+  const where = { userId };
+  if (onlyUnread) where.read = false;
+
+  // Exécuter les deux requêtes en parallèle
+  const [notifications, total] = await Promise.all([
+    prisma.notification.findMany({
+      where,
+      orderBy: { createdAt: 'desc' },
+      skip: (page - 1) * limit, // sauter les éléments des pages précédentes
+      take: limit, // prendre seulement 'limit' éléments
+    }),
+    prisma.notification.count({ where }),
+  ]);
+
+  return {
+    notifications,
+    total,
+    page,
+    totalPages: Math.ceil(total / limit),
+  };
 }
 
 export async function markAsRead(notificationId, userId) {

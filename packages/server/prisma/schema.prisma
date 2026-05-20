@@ -68,6 +68,7 @@ model Client {
   updatedAt DateTime  @updatedAt
 }
 
+
 model Contact {
   id        Int     @id @default(autoincrement())
   firstName String
@@ -110,6 +111,8 @@ model Quote {
   invoices   Invoice[]
   createdAt  DateTime    @default(now())
   updatedAt  DateTime    @updatedAt
+  @@index([status])
+  @@index([clientId])
 }
 
 model QuoteItem {
@@ -141,6 +144,8 @@ model Invoice {
   payments   Payment[]
   createdAt  DateTime      @default(now())
   updatedAt  DateTime      @updatedAt
+  @@index([status])
+  @@index([clientId])
 }
 
 model InvoiceItem {
@@ -211,6 +216,8 @@ model Task {
   dependencies    TaskDependency[] @relation("TaskDepends")
   dependents      TaskDependency[] @relation("TaskDependedOn")
   attachments Attachment[]
+  @@index([projectId])
+  @@index([status])
 }
 
 model TaskAssignee {
@@ -264,4 +271,6 @@ model Notification {
   read      Boolean  @default(false)
   metadata  Json?
   createdAt DateTime @default(now())
+  @@index([userId, read])
 }
+

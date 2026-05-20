@@ -51,6 +51,19 @@ export async function createTask(data) {
   return task;
 }
 
+export async function findByProject(projectId) {
+  return prisma.task.findMany({
+    where: { projectId },
+    include: {
+      assignees: { include: { user: { select: { id: true, firstName: true, lastName: true } } } },
+      comments: true,
+      dependencies: true,
+      subTasks: true,
+    },
+    orderBy: { id: 'asc' },
+  });
+}
+
 /**
  * Récupère une tâche par ID.
  */

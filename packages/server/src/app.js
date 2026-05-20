@@ -5,6 +5,7 @@ import helmet from 'helmet';
 import morgan from 'morgan';
 import rateLimit from 'express-rate-limit';
 import path from 'node:path';
+import compression from 'compression';
 import authRoutes from './modules/auth/auth.routes.js';
 import clientRoutes from './modules/clients/clients.routes.js';
 import productRoutes from './modules/products/products.routes.js';
@@ -15,11 +16,13 @@ import taskRoutes from './modules/tasks/tasks.routes.js';
 import dashboardRoutes from './modules/dashboard/dashboard.routes.js';
 import notificationRoutes from './modules/notifications/notifications.routes.js';
 import attachmentRoutes from './modules/attachments/attachments.routes.js';
+import usersRoutes from './modules/users/users.routes.js';
 
 const app = express();
 
 // Middlewares globaux
 app.use(helmet());
+app.use(compression());
 app.use(cors({ origin: process.env.CORS_ORIGIN, credentials: true }));
 app.use(morgan('dev'));
 app.use(express.json());
@@ -44,6 +47,7 @@ app.use('/api/v1/tasks', taskRoutes);
 app.use('/api/v1/dashboard', dashboardRoutes);
 app.use('/api/v1/notifications', notificationRoutes);
 app.use('/api/v1/attachments', attachmentRoutes);
+app.use('/api/v1/users', usersRoutes);
 
 // Middleware d'erreur (provisoire)
 // eslint-disable-next-line no-unused-vars

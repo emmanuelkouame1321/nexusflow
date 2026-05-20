@@ -1,31 +1,39 @@
-import { useEffect, useState } from 'react';
-import { BrowserRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom';
+import { useEffect, useState, Suspense, lazy } from 'react';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
-// Layouts
+// Layouts – chargés normalement car toujours utilisés
 import AuthLayout from './layouts/AuthLayout';
 import AppLayout from './layouts/AppLayout';
 
-// Pages (certaines sont encore des placeholders, nous les compléterons)
-import Login from './pages/auth/Login';
-import Dashboard from './pages/dashboard/Dashboard';
-import ClientsList from './pages/clients/ClientsList';
-import ClientDetail from './pages/clients/ClientDetail';
-import QuotesList from './pages/quotes/QuotesList';
-import QuoteDetail from './pages/quotes/QuoteDetail';
-import InvoicesList from './pages/invoices/InvoicesList';
-import InvoiceDetail from './pages/invoices/InvoiceDetail';
-import ProjectsList from './pages/projects/ProjectsList';
-import ProjectDetail from './pages/projects/ProjectDetail';
-import Notifications from './pages/notifications/Notifications';
-import Settings from './pages/settings/Settings';
-import Emails from './pages/emails/Emails';
-import ProductsList from './pages/products/ProductsList';
+// Pages – chargées à la demande
+const Login = lazy(() => import('./pages/auth/Login'));
+const Dashboard = lazy(() => import('./pages/dashboard/Dashboard'));
+const ClientsList = lazy(() => import('./pages/clients/ClientsList'));
+const ClientDetail = lazy(() => import('./pages/clients/ClientDetail'));
+const QuotesList = lazy(() => import('./pages/quotes/QuotesList'));
+const QuoteDetail = lazy(() => import('./pages/quotes/QuoteDetail'));
+const InvoicesList = lazy(() => import('./pages/invoices/InvoicesList'));
+const InvoiceDetail = lazy(() => import('./pages/invoices/InvoiceDetail'));
+const ProjectsList = lazy(() => import('./pages/projects/ProjectsList'));
+const ProjectDetail = lazy(() => import('./pages/projects/ProjectDetail'));
+const Notifications = lazy(() => import('./pages/notifications/Notifications'));
+const Settings = lazy(() => import('./pages/settings/Settings'));
+const Emails = lazy(() => import('./pages/emails/Emails'));
+const ProductsList = lazy(() => import('./pages/products/ProductsList'));
 
-// Store d'authentification
 import { useAuthStore } from './store/useAuthStore';
 
+// Spinner affiché pendant le chargement des pages lazy
+const PageLoader = () => (
+  <div className="flex items-center justify-center min-h-screen">
+    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+  </div>
+);
+
 // --------------------------------------------------
-// Composant ProtectedLayout : vérifie l'authentification
+// ProtectedLayout : vérifie l'authentification
 // --------------------------------------------------
 function ProtectedLayout() {
   const { isAuthenticated, fetchUser } = useAuthStore();
@@ -41,21 +49,14 @@ function ProtectedLayout() {
     return () => { cancelled = true; };
   }, [fetchUser]);
 
-  // Spinner pendant la vérification
   if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
-      </div>
-    );
+    return <PageLoader />;
   }
 
-  // Si non authentifié, rediriger vers /login
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
   }
 
-  // Authentifié : afficher le layout principal avec la sidebar
   return <AppLayout />;
 }
 
@@ -65,30 +66,46 @@ function ProtectedLayout() {
 export default function App() {
   return (
     <BrowserRouter>
-      <Routes>
-        {/* Routes publiques : pas de sidebar, juste la carte d'authentification */}
-        <Route element={<AuthLayout />}>
-          <Route path="/login" element={<Login />} />
-        </Route>
+      <Suspense fallback={<PageLoader />}>
+        <Routes>
+          {/* Routes publiques */}
+          <Route element={<AuthLayout />}>
+            <Route path="/login" element={<Login />} />
+          </Route>
 
-        {/* Routes protégées : vérification auth + layout avec sidebar */}
-        <Route element={<ProtectedLayout />}>
-          <Route path="/" element={<Navigate to="/dashboard" replace />} />
-          <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/clients" element={<ClientsList />} />
-          <Route path="/clients/:id" element={<ClientDetail />} />
-          <Route path="/quotes" element={<QuotesList />} />
-          <Route path="/quotes/:id" element={<QuoteDetail />} />
-          <Route path="/invoices" element={<InvoicesList />} />
-          <Route path="/invoices/:id" element={<InvoiceDetail />} />
-          <Route path="/projects" element={<ProjectsList />} />
-          <Route path="/projects/:id" element={<ProjectDetail />} />
-          <Route path="/notifications" element={<Notifications />} />
-          <Route path="/settings" element={<Settings />} />
-          <Route path="/emails" element={<Emails />} />
-          <Route path="/products" element={<ProductsList />} />
-        </Route>
-      </Routes>
+          {/* Routes protégées */}
+          <Route element={<ProtectedLayout />}>
+            <Route path="/" element={<Navigate to="/dashboard" replace />} />
+            <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/clients" element={<ClientsList />} />
+            <Route path="/clients/:id" element={<ClientDetail />} />
+            <Route path="/quotes" element={<QuotesList />} />
+            <Route path="/quotes/:id" element={<QuoteDetail />} />
+            <Route path="/invoices" element={<InvoicesList />} />
+            <Route path="/invoices/:id" element={<InvoiceDetail />} />
+            <Route path="/projects" element={<ProjectsList />} />
+            <Route path="/projects/:id" element={<ProjectDetail />} />
+            <Route path="/notifications" element={<Notifications />} />
+            <Route path="/settings" element={<Settings />} />
+            <Route path="/emails" element={<Emails />} />
+            <Route path="/products" element={<ProductsList />} />
+          </Route>
+        </Routes>
+      </Suspense>
+
+      {/* Toasts – toujours présents, hors Suspense pour ne pas retarder leur affichage */}
+      <ToastContainer
+        position="bottom-right"
+        autoClose={3000}
+        hideProgressBar={false}
+        newestOnTop={false}
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable={false}
+        pauseOnHover
+        theme="light"
+      />
     </BrowserRouter>
   );
 }

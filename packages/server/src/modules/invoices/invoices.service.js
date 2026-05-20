@@ -48,7 +48,7 @@ export async function createInvoice(data) {
     },
     include: {
       items: true,
-      client: { select: { id: true, name: true } },
+      client: { select: { id: true, name: true, email: true } }, // ← inclure le client
       payments: true,
     },
   });
@@ -98,15 +98,24 @@ export async function findById(id) {
     include: {
       items: true,
       payments: true,
-      client: { select: { id: true, name: true, email: true } },
+      client: { select: { id: true, name: true, email: true } }, // <-- cette ligne est cruciale
       quote: true,
     },
   });
 }
+
 /**
  * Ajoute un paiement à une facture
  */
 export async function addPayment(invoiceId, paymentData) {
+  // Vérifier que la facture existe
+  const invoice = await prisma.invoice.findUnique({ where: { id: invoiceId } });
+  if (!invoice) {
+    const error = new Error('Facture introuvable');
+    error.code = 'P2025'; // code reconnu par notre gestionnaire d'erreur
+    throw error;
+  }
+
   const payment = await prisma.payment.create({
     data: {
       amount: paymentData.amount,
@@ -117,12 +126,9 @@ export async function addPayment(invoiceId, paymentData) {
     },
   });
 
-  // Mettre à jour le statut de la facture
   await updateInvoiceStatus(invoiceId);
-
   return payment;
 }
-
 /**
  * Met à jour le statut d'une facture en fonction des paiements
  */

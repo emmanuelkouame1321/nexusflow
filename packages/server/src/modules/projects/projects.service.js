@@ -44,19 +44,40 @@ export async function findAll({ status, clientId, search, page = '1', limit = '2
   const [projects, total] = await Promise.all([
     prisma.project.findMany({
       where,
-      include: {
-        members: { include: { user: { select: { id: true, firstName: true, lastName: true } } } },
+      select: {
+        id: true,
+        name: true,
+        status: true,
+        startDate: true,
+        endDate: true,
         client: { select: { id: true, name: true } },
-        tasks: true,
+        _count: { select: { tasks: true } }, // nombre total de tâches
+        tasks: { select: { status: true }, where: { status: 'done' } }, // tâches terminées
       },
       skip: (pageNum - 1) * limitNum,
       take: limitNum,
-      orderBy: { createdAt: 'desc' },
+      orderBy: { id: 'desc' },
     }),
     prisma.project.count({ where }),
   ]);
 
-  return { projects, total, page: pageNum, totalPages: Math.ceil(total / limitNum) };
+  // Calculer la progression pour chaque projet
+  const projectsWithProgress = projects.map((p) => {
+    const totalTasks = p._count.tasks;
+    const doneTasks = p.tasks.length;
+    const progress = totalTasks > 0 ? Math.round((doneTasks / totalTasks) * 100) : 0;
+    // On supprime les tableaux temporaires
+    delete p._count;
+    delete p.tasks;
+    return { ...p, progress };
+  });
+
+  return {
+    projects: projectsWithProgress,
+    total,
+    page: pageNum,
+    totalPages: Math.ceil(total / limitNum),
+  };
 }
 
 /**

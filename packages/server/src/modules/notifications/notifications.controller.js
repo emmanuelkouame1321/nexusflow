@@ -2,8 +2,14 @@ import * as notificationService from './notifications.service.js';
 
 export async function getAll(req, res, next) {
   try {
-    const notifications = await notificationService.getUserNotifications(req.user.id);
-    res.json(notifications);
+    const { unread, page, limit } = req.query;
+    const data = await notificationService.getUserNotifications(
+      req.user.id,
+      unread === 'true',
+      parseInt(page, 10) || 1,
+      parseInt(limit, 10) || 20,
+    );
+    res.json(data);
   } catch (error) {
     next(error);
   }
@@ -11,7 +17,7 @@ export async function getAll(req, res, next) {
 
 export async function markAsRead(req, res, next) {
   try {
-    const notification = await notificationService.markAsRead(+req.params.id);
+    const notification = await notificationService.markAsRead(parseInt(req.params.id, 10));
     res.json(notification);
   } catch (error) {
     next(error);

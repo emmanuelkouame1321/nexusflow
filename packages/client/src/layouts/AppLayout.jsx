@@ -4,7 +4,7 @@ import { useAuthStore } from '../store/useAuthStore';
 import api from '../services/api';
 import NotificationBell from '../components/layout/NotificationBell';
 
-// Icônes SVG inline pour chaque section (pas de dépendance externe)
+// Icônes SVG inline pour chaque section
 const icons = {
   dashboard: (
     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -62,6 +62,19 @@ export default function AppLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const sidebarRef = useRef(null);
   const toggleButtonRef = useRef(null);
+
+  // État pour l'ombre du header au scroll
+  const [scrolled, setScrolled] = useState(false);
+
+  // Détection du scroll pour activer l'ombre
+  useEffect(() => {
+    const handleScroll = () => {
+      setScrolled(window.scrollY > 10);
+    };
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    handleScroll(); // initialisation
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   // Fermer la sidebar si on clique en dehors (mobile uniquement)
   useEffect(() => {
@@ -145,9 +158,9 @@ export default function AppLayout() {
         ref={sidebarRef}
         role="navigation"
         aria-label="Navigation principale"
-        className={`fixed md:sticky top-0 z-40 h-screen w-64 bg-gray-900 text-white flex-shrink-0 transform transition-transform duration-300 ease-in-out overflow-y-auto
-          ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
-          md:translate-x-0 md:block`}
+        className={`fixed top-0 left-0 z-40 h-screen w-56 bg-gray-900 text-white flex-shrink-0 transform transition-transform duration-300 ease-in-out overflow-y-auto
+        ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
+        md:translate-x-0`}
       >
         <div className="flex flex-col h-full p-4">
           {/* Logo / marque */}
@@ -204,8 +217,13 @@ export default function AppLayout() {
       </aside>
 
       {/* Contenu principal */}
-      <main className="flex-1 p-4 md:p-6 pt-16 md:pt-6 bg-gray-50 min-h-screen">
-        <header className="sticky top-16 md:top-0 z-30 bg-gray-50 pt-2 pb-4 mb-6 flex items-center justify-between">
+      <main className="flex-1 pt-20 md:pt-16 p-4 md:p-6 md:ml-56 bg-gray-50 min-h-screen">
+        {/* Header fixe avec ombre au scroll */}
+        <header
+          className={`fixed top-0 right-0 left-0 md:left-56 z-30 bg-gray-50 pt-4 pb-3 px-4 md:px-6 flex items-center justify-between transition-shadow duration-200 ${
+            scrolled ? 'shadow-md' : ''
+          }`}
+        >
           <h1 className="text-xl md:text-2xl font-bold text-gray-800">NexusFlow</h1>
           <div className="flex items-center gap-2 md:gap-4">
             <NotificationBell />
@@ -218,7 +236,11 @@ export default function AppLayout() {
             </div>
           </div>
         </header>
-        <Outlet />
+
+        {/* Décalage pour compenser la hauteur du header fixe */}
+        <div className="pt-20 md:pt-16 p-4 md:p-6">
+          <Outlet />
+        </div>
       </main>
     </div>
   );
