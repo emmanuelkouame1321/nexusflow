@@ -6,27 +6,31 @@ import DataTable from '../../components/shared/DataTable';
 import FormModal from '../../components/shared/FormModal';
 import ConfirmDialog from '../../components/shared/ConfirmDialog';
 import StatusBadge from '../../components/shared/StatusBadge';
+import QuoteFormModal from '../../components/quotes/QuoteFormModal';
 
 export default function QuotesList() {
   const [quotes, setQuotes] = useState([]);
   const [totalPages, setTotalPages] = useState(1);
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
-  // État initial : remplace clientId par search
   const [filters, setFilters] = useState({ status: '', search: '' });
   const [showStatusModal, setShowStatusModal] = useState(false);
   const [selectedQuote, setSelectedQuote] = useState(null);
   const [newStatus, setNewStatus] = useState('');
   const [deleteTarget, setDeleteTarget] = useState(null);
+  const [showCreateForm, setShowCreateForm] = useState(false);
+  const canCreate = useHasRole('admin', 'manager', 'commercial');
+  const canChangeStatus = useHasRole('admin', 'manager');
+  const canDelete = useHasRole('admin');
   const navigate = useNavigate();
+
 
   const fetchQuotes = async () => {
     setLoading(true);
     try {
-      // Dans fetchQuotes
       const params = { page, limit: 20 };
       if (filters.status) params.status = filters.status;
-      if (filters.search) params.search = filters.search;   // <-- changé
+      if (filters.search) params.search = filters.search;
       const { data } = await api.get('/quotes', { params });
       setQuotes(data.quotes);
       setTotalPages(data.totalPages);
@@ -40,6 +44,18 @@ export default function QuotesList() {
   useEffect(() => {
     fetchQuotes();
   }, [page, filters]);
+
+  const handleCreate = async (formData) => {
+    try {
+      await api.post('/quotes', formData);
+      toast.success('Devis créé avec succès.');
+      setShowCreateForm(false);
+      fetchQuotes();
+    } catch (err) {
+      const message = err.response?.data?.message || "Erreur lors de la création du devis.";
+      toast.error(message);
+    }
+  };
 
   const handleStatusChange = async () => {
     try {
@@ -76,8 +92,10 @@ export default function QuotesList() {
       render: (row) => (
         <div className="flex items-center gap-2 whitespace-nowrap">
           <button onClick={() => navigate(`/quotes/${row.id}`)} className="text-indigo-600 hover:text-indigo-800 text-xs sm:text-sm font-medium">Voir</button>
-          <button onClick={() => { setSelectedQuote(row); setNewStatus(row.status); setShowStatusModal(true); }} className="text-blue-600 hover:text-blue-800 text-xs sm:text-sm font-medium">Statut</button>
-          <button onClick={() => setDeleteTarget(row)} className="text-red-600 hover:text-red-800 text-xs sm:text-sm font-medium">Supprimer</button>
+          {canChangeStatus && 
+          <button onClick={() => { setSelectedQuote(row); setNewStatus(row.status); setShowStatusModal(true); }} className="text-blue-600 hover:text-blue-800 text-xs sm:text-sm font-medium">Statut</button>}
+          {canDelete &&
+          <button onClick={() => setDeleteTarget(row)} className="text-red-600 hover:text-red-800 text-xs sm:text-sm font-medium">Supprimer</button>}
         </div>
       ),
     },
@@ -85,10 +103,23 @@ export default function QuotesList() {
 
   return (
     <div className="space-y-4 sm:space-y-6">
-      {/* En-tête avec filtres */}
+      {/* En-tête avec filtres et bouton Nouveau devis */}
       <div className="sticky top-16 md:top-0 z-20 bg-gray-50 pt-1 pb-3 -mx-4 px-4 sm:mx-0 sm:px-0 border-b border-gray-200">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-          <h2 className="text-2xl sm:text-3xl font-bold text-gray-900">Devis</h2>
+          <div className="flex items-center gap-3">
+            <h2 className="text-2xl sm:text-3xl font-bold text-gray-900">Devis</h2>
+            {canCreate &&
+            <button
+              onClick={() => setShowCreateForm(true)}
+              className="inline-flex items-center gap-2 px-3 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 shadow-sm transition-colors"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+              </svg>
+              <span className="hidden sm:inline">Nouveau devis</span>
+            </button>
+            }
+          </div>
           <div className="flex flex-col sm:flex-row gap-2">
             <select
               value={filters.status}
@@ -101,7 +132,6 @@ export default function QuotesList() {
               <option value="accepted">Accepté</option>
               <option value="refused">Refusé</option>
             </select>
-            {/* Dans le JSX, remplace l'input "ID Client" par ce champ de recherche */}
             <input
               type="text"
               placeholder="Recherche référence ou client..."
@@ -151,6 +181,14 @@ export default function QuotesList() {
         title="Supprimer le devis"
         message={`Supprimer définitivement ${deleteTarget?.reference} ?`}
       />
+
+      {/* Formulaire de création de devis */}
+      {showCreateForm && (
+        <QuoteFormModal
+          onClose={() => setShowCreateForm(false)}
+          onSave={handleCreate}
+        />
+      )}
     </div>
   );
 }

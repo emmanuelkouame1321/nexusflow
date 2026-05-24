@@ -126,3 +126,37 @@ export async function getMe(req, res, next) {
     next(error);
   }
 }
+
+export async function updateMe(req, res, next) {
+  try {
+    const { firstName, lastName, email } = req.body;
+    const user = await authService.updateUser(req.user.id, { firstName, lastName, email });
+    res.json({
+      user: {
+        id: user.id,
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        role: user.role.name,
+      },
+    });
+  } catch (error) {
+    if (error.code === 'P2002')
+      return res.status(409).json({ message: 'Cet email est déjà utilisé.' });
+    next(error);
+  }
+}
+
+export async function changePassword(req, res, next) {
+  try {
+    const { currentPassword, newPassword } = req.body;
+    const user = await authService.getUserById(req.user.id);
+    if (!user || !(await authService.comparePassword(currentPassword, user.passwordHash))) {
+      return res.status(400).json({ message: 'Mot de passe actuel incorrect.' });
+    }
+    await authService.changePassword(req.user.id, newPassword);
+    res.json({ message: 'Mot de passe modifié avec succès.' });
+  } catch (error) {
+    next(error);
+  }
+}

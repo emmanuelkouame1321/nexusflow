@@ -6,6 +6,7 @@ import DataTable from '../../components/shared/DataTable';
 import FormModal from '../../components/shared/FormModal';
 import ConfirmDialog from '../../components/shared/ConfirmDialog';
 import SalesPipeline from './SalesPipeline';
+import { useHasRole } from '../../hooks/useHasRole';
 
 export default function ClientsList() {
   const [clients, setClients] = useState([]);
@@ -16,6 +17,9 @@ export default function ClientsList() {
   const [editingClient, setEditingClient] = useState(null);
   const [deleteTarget, setDeleteTarget] = useState(null);
   const navigate = useNavigate();
+  const canCreate = useHasRole('admin', 'manager', 'commercial');
+  const canEdit = useHasRole('admin', 'manager', 'commercial');
+  const canDelete = useHasRole('admin');
 
   const fetchClients = async (p = page) => {
     setLoading(true);
@@ -85,6 +89,7 @@ export default function ClientsList() {
           >
             Voir
           </button>
+          {canEdit &&
           <button
             onClick={() => { setEditingClient(row); setShowForm(true); }}
             className="text-blue-600 hover:text-blue-800 text-xs sm:text-sm font-medium transition-colors"
@@ -92,6 +97,8 @@ export default function ClientsList() {
           >
             Modifier
           </button>
+          }
+          {canDelete && 
           <button
             onClick={() => setDeleteTarget(row)}
             className="text-red-600 hover:text-red-800 text-xs sm:text-sm font-medium transition-colors"
@@ -99,6 +106,7 @@ export default function ClientsList() {
           >
             Supprimer
           </button>
+          }
         </div>
       ),
     },
@@ -109,6 +117,7 @@ export default function ClientsList() {
       {/* En-tête sticky */}
       <div className="sticky top-16 md:top-0 z-20 bg-gray-50 pt-1 pb-3 -mx-4 px-4 sm:mx-0 sm:px-0 border-b border-gray-200 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <h2 className="text-2xl sm:text-3xl font-bold text-gray-900">Clients</h2>
+        {canCreate && (
         <button
           onClick={() => { setEditingClient(null); setShowForm(true); }}
           className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-indigo-600 text-white font-medium rounded-lg hover:bg-indigo-700 shadow-sm transition-colors text-sm sm:text-base self-end sm:self-auto"
@@ -119,6 +128,7 @@ export default function ClientsList() {
           <span className="hidden sm:inline">Nouveau client</span>
           <span className="sm:hidden">+</span>
         </button>
+        )}
       </div>
 
       {/* Tableau */}

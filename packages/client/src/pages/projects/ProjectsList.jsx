@@ -16,6 +16,9 @@ export default function ProjectsList() {
   const [editingProject, setEditingProject] = useState(null);
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [users, setUsers] = useState([]); // pour assigner des membres
+  const canCreate = useHasRole('admin', 'manager', 'project_manager');
+  const canEdit = useHasRole('admin', 'manager', 'project_manager');
+  const canDelete = useHasRole('admin');
   const navigate = useNavigate();
 
   const fetchProjects = async () => {
@@ -102,8 +105,10 @@ export default function ProjectsList() {
       render: (row) => (
         <div className="flex items-center gap-2 whitespace-nowrap">
           <button onClick={() => navigate(`/projects/${row.id}`)} className="text-indigo-600 hover:text-indigo-800 text-xs sm:text-sm font-medium">Voir</button>
-          <button onClick={() => { setEditingProject(row); setShowForm(true); }} className="text-blue-600 hover:text-blue-800 text-xs sm:text-sm font-medium">Modifier</button>
-          <button onClick={() => setDeleteTarget(row)} className="text-red-600 hover:text-red-800 text-xs sm:text-sm font-medium">Supprimer</button>
+          {canEdit && (
+          <button onClick={() => { setEditingProject(row); setShowForm(true); }} className="text-blue-600 hover:text-blue-800 text-xs sm:text-sm font-medium">Modifier</button>)}
+          {canDelete  && (
+          <button onClick={() => setDeleteTarget(row)} className="text-red-600 hover:text-red-800 text-xs sm:text-sm font-medium">Supprimer</button>)}
         </div>
       ),
     },
@@ -113,6 +118,7 @@ export default function ProjectsList() {
     <div className="space-y-4 sm:space-y-6">
       <div className="sticky top-16 md:top-0 z-20 bg-gray-50 pt-1 pb-3 -mx-4 px-4 sm:mx-0 sm:px-0 border-b border-gray-200 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <h2 className="text-2xl sm:text-3xl font-bold text-gray-900">Projets</h2>
+        {canCreate &&
         <button
           onClick={() => { setEditingProject(null); setShowForm(true); }}
           className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-indigo-600 text-white font-medium rounded-lg hover:bg-indigo-700 shadow-sm transition-colors text-sm sm:text-base self-end sm:self-auto"
@@ -123,6 +129,7 @@ export default function ProjectsList() {
           <span className="hidden sm:inline">Nouveau projet</span>
           <span className="sm:hidden">+</span>
         </button>
+  }
       </div>
 
       {loading ? (

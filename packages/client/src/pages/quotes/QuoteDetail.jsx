@@ -6,6 +6,7 @@ import StatusBadge from '../../components/shared/StatusBadge';
 import DataTable from '../../components/shared/DataTable';
 import FormModal from '../../components/shared/FormModal';
 import ConfirmDialog from '../../components/shared/ConfirmDialog';
+import { useHasRole } from '../../hooks/useHasRole'; // ← ajouté
 
 export default function QuoteDetail() {
   const { id } = useParams();
@@ -17,6 +18,11 @@ export default function QuoteDetail() {
   const [sending, setSending] = useState(false);
   const [converting, setConverting] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+
+  // Vérification des rôles
+  const canSend = useHasRole('admin', 'manager', 'commercial');
+  const canConvert = useHasRole('admin', 'manager', 'commercial');
+  const canDelete = useHasRole('admin');
 
   useEffect(() => {
     const fetchQuote = async () => {
@@ -55,7 +61,6 @@ export default function QuoteDetail() {
   };
 
   const handleConvertToInvoice = async () => {
-    // Vérifier que le client du devis a un email (sinon la facture sera injoignable)
     if (!quote.client?.email) {
       toast.error("Le client n'a pas d'adresse email. Veuillez renseigner un email pour ce client avant de convertir.");
       return;
@@ -146,10 +151,24 @@ export default function QuoteDetail() {
           <StatusBadge status={quote.status} size="sm" />
         </div>
         <div className="flex flex-wrap gap-2 self-end sm:self-auto">
-          <button onClick={() => setShowEmailModal(true)} className="px-3 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 transition-colors shadow-sm">Envoyer par email</button>
-          <button onClick={handleDownloadPDF} className="px-3 py-2 bg-gray-600 text-white text-sm font-medium rounded-lg hover:bg-gray-700 transition-colors shadow-sm">Télécharger PDF</button>
-          <button onClick={handleConvertToInvoice} disabled={converting} className="px-3 py-2 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 disabled:opacity-50 transition-colors shadow-sm">{converting ? 'Conversion...' : 'Convertir en facture'}</button>
-          <button onClick={() => setShowDeleteConfirm(true)} className="px-3 py-2 bg-red-600 text-white text-sm font-medium rounded-lg hover:bg-red-700 transition-colors shadow-sm">Supprimer</button>
+          {canSend && (
+            <button onClick={() => setShowEmailModal(true)} className="px-3 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 transition-colors shadow-sm">
+              Envoyer par email
+            </button>
+          )}
+          <button onClick={handleDownloadPDF} className="px-3 py-2 bg-gray-600 text-white text-sm font-medium rounded-lg hover:bg-gray-700 transition-colors shadow-sm">
+            Télécharger PDF
+          </button>
+          {canConvert && (
+            <button onClick={handleConvertToInvoice} disabled={converting} className="px-3 py-2 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 disabled:opacity-50 transition-colors shadow-sm">
+              {converting ? 'Conversion...' : 'Convertir en facture'}
+            </button>
+          )}
+          {canDelete && (
+            <button onClick={() => setShowDeleteConfirm(true)} className="px-3 py-2 bg-red-600 text-white text-sm font-medium rounded-lg hover:bg-red-700 transition-colors shadow-sm">
+              Supprimer
+            </button>
+          )}
         </div>
       </div>
 

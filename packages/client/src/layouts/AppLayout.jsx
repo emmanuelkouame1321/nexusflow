@@ -3,6 +3,8 @@ import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuthStore } from '../store/useAuthStore';
 import api from '../services/api';
 import NotificationBell from '../components/layout/NotificationBell';
+import { connectSocket, disconnectSocket } from '../services/socket';
+import { useHasRole } from '../hooks/useHasRole';
 
 // Icônes SVG inline pour chaque section
 const icons = {
@@ -44,17 +46,6 @@ const icons = {
   ),
 };
 
-// Définition des liens de navigation
-const navigation = [
-  { to: '/dashboard', label: 'Tableau de bord', icon: icons.dashboard },
-  { to: '/clients', label: 'Clients', icon: icons.clients },
-  { to: '/products', label: 'Produits', icon: icons.products },
-  { to: '/quotes', label: 'Devis', icon: icons.quotes },
-  { to: '/invoices', label: 'Factures', icon: icons.invoices },
-  { to: '/projects', label: 'Projets', icon: icons.projects },
-  { to: '/settings', label: 'Paramètres', icon: icons.settings },
-];
-
 export default function AppLayout() {
   const { user, logout } = useAuthStore();
   const navigate = useNavigate();
@@ -65,6 +56,19 @@ export default function AppLayout() {
 
   // État pour l'ombre du header au scroll
   const [scrolled, setScrolled] = useState(false);
+  const isAdmin = useHasRole('admin');
+
+  // Navigation définie à l'intérieur du composant pour utiliser isAdmin
+  const navigation = [
+    { to: '/dashboard', label: 'Tableau de bord', icon: icons.dashboard },
+    { to: '/clients', label: 'Clients', icon: icons.clients },
+    { to: '/products', label: 'Produits', icon: icons.products },
+    { to: '/quotes', label: 'Devis', icon: icons.quotes },
+    { to: '/invoices', label: 'Factures', icon: icons.invoices },
+    { to: '/projects', label: 'Projets', icon: icons.projects },
+    // Paramètres uniquement visible par l'admin
+    ...(isAdmin ? [{ to: '/settings', label: 'Paramètres', icon: icons.settings }] : []),
+  ];
 
   // Détection du scroll pour activer l'ombre
   useEffect(() => {
@@ -74,6 +78,12 @@ export default function AppLayout() {
     window.addEventListener('scroll', handleScroll, { passive: true });
     handleScroll(); // initialisation
     return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  // Socket.io
+  useEffect(() => {
+    connectSocket();
+    return () => disconnectSocket();
   }, []);
 
   // Fermer la sidebar si on clique en dehors (mobile uniquement)
@@ -203,6 +213,12 @@ export default function AppLayout() {
                 <p className="text-gray-400 text-xs truncate">{user?.email}</p>
               </div>
             </div>
+            <Link to="/profile" className="flex items-center gap-2 w-full px-3 py-2 text-left text-gray-300 hover:text-white hover:bg-gray-800 rounded-lg transition-colors">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+              </svg>
+              <span className="text-sm">Mon profil</span>
+            </Link>
             <button
               onClick={handleLogout}
               className="flex items-center gap-2 w-full px-3 py-2 text-left text-red-400 hover:text-red-300 hover:bg-gray-800 rounded-lg transition-colors"

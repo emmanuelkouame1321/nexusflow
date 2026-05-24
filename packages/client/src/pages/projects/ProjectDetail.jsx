@@ -2,17 +2,21 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../../services/api';
 import ProjectInfoTab from './tabs/ProjectInfoTab';
-import ProjectKanbanTab from './tabs/ProjectKanbanTab';  // ← nouvelle vue liste
+import ProjectKanbanTab from './tabs/ProjectKanbanTab';
 import ProjectCalendarTab from './tabs/ProjectCalendarTab';
 import ProjectTeamTab from './tabs/ProjectTeamTab';
 import ProjectFilesTab from './tabs/ProjectFilesTab';
+import { useHasRole } from '../../hooks/useHasRole'; // ← ajouté
 
 export default function ProjectDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [project, setProject] = useState(null);
-  const [activeTab, setActiveTab] = useState('tasks');   // onglet par défaut : Tâches
+  const [activeTab, setActiveTab] = useState('kanban');   // onglet par défaut
   const [loading, setLoading] = useState(true);
+
+  // Droits pour gérer l'équipe
+  const canManageTeam = useHasRole('admin', 'manager', 'project_manager');
 
   useEffect(() => {
     const fetchProject = async () => {
@@ -44,7 +48,8 @@ export default function ProjectDetail() {
   const tabs = [
     { key: 'kanban', label: 'Kanban' },
     { key: 'calendar', label: 'Calendrier' },
-    { key: 'team', label: 'Équipe' },
+    // L'onglet Équipe n'apparaît que si l'utilisateur a les droits
+    ...(canManageTeam ? [{ key: 'team', label: 'Équipe' }] : []),
     { key: 'info', label: 'Infos' },
     { key: 'files', label: 'Fichiers' },
   ];

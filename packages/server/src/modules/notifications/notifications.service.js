@@ -1,17 +1,11 @@
 import prisma from '../../lib/prisma.js';
 
-export async function createNotification(userId, type, message, metadata = null) {
-  // Enregistrer en base
+export async function createNotification(userId, type, message, metadata = {}) {
   const notification = await prisma.notification.create({
-    data: {
-      userId,
-      type,
-      message,
-      metadata,
-    },
+    data: { userId, type, message, metadata },
   });
 
-  // Émettre l'événement via Socket.io (si io est disponible)
+  // Émettre via Socket.io (si le service socket est disponible)
   const io = global.app?.get('io');
   if (io) {
     io.to(`user:${userId}`).emit('notification', notification);
@@ -20,17 +14,16 @@ export async function createNotification(userId, type, message, metadata = null)
   return notification;
 }
 
-export async function getUserNotifications(userId, onlyUnread = false, page = 1, limit = 20) {
+export async function getUserNotifications(userId, unreadOnly = false, page = 1, limit = 20) {
   const where = { userId };
-  if (onlyUnread) where.read = false;
+  if (unreadOnly) where.read = false;
 
-  // Exécuter les deux requêtes en parallèle
   const [notifications, total] = await Promise.all([
     prisma.notification.findMany({
       where,
       orderBy: { createdAt: 'desc' },
-      skip: (page - 1) * limit, // sauter les éléments des pages précédentes
-      take: limit, // prendre seulement 'limit' éléments
+      skip: (page - 1) * limit,
+      take: limit,
     }),
     prisma.notification.count({ where }),
   ]);

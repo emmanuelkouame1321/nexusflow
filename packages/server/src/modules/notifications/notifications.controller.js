@@ -23,3 +23,12 @@ export async function markAsRead(req, res, next) {
     next(error);
   }
 }
+
+export async function markAllAsRead(req, res, next) {
+  try {
+    await notificationService.markAllAsRead(req.user.id);
+    res.json({ message: 'Tout est lu.' });
+  } catch (error) {
+    next(error);
+  }
+}

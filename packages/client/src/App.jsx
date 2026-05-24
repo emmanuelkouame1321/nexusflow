@@ -22,8 +22,10 @@ const Notifications = lazy(() => import('./pages/notifications/Notifications'));
 const Settings = lazy(() => import('./pages/settings/Settings'));
 const Emails = lazy(() => import('./pages/emails/Emails'));
 const ProductsList = lazy(() => import('./pages/products/ProductsList'));
+import Profile from './pages/profile/Profile';
 
 import { useAuthStore } from './store/useAuthStore';
+import AdminRoute from './components/AdminRoute';
 
 // Spinner affiché pendant le chargement des pages lazy
 const PageLoader = () => (
@@ -86,9 +88,10 @@ export default function App() {
             <Route path="/projects" element={<ProjectsList />} />
             <Route path="/projects/:id" element={<ProjectDetail />} />
             <Route path="/notifications" element={<Notifications />} />
-            <Route path="/settings" element={<Settings />} />
+            <Route path="/settings" element={<AdminRoute><Settings /></AdminRoute>} />
             <Route path="/emails" element={<Emails />} />
             <Route path="/products" element={<ProductsList />} />
+            <Route path="/profile" element={<Profile />} />
           </Route>
         </Routes>
       </Suspense>

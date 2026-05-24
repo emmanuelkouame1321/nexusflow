@@ -107,3 +107,23 @@ export async function createUser({ firstName, lastName, email, password, roleId 
     include: { role: true },
   });
 }
+
+export async function updateUser(id, data) {
+  return prisma.user.update({
+    where: { id },
+    data: {
+      firstName: data.firstName,
+      lastName: data.lastName,
+      email: data.email,
+    },
+    include: { role: true },
+  });
+}
+
+export async function changePassword(id, newPassword) {
+  const passwordHash = await hashPassword(newPassword);
+  await prisma.user.update({
+    where: { id },
+    data: { passwordHash },
+  });
+}

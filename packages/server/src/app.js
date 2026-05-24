@@ -17,6 +17,8 @@ import dashboardRoutes from './modules/dashboard/dashboard.routes.js';
 import notificationRoutes from './modules/notifications/notifications.routes.js';
 import attachmentRoutes from './modules/attachments/attachments.routes.js';
 import usersRoutes from './modules/users/users.routes.js';
+import rolesRoutes from './modules/roles/roles.routes.js';
+import settingsRoutes from './modules/settings/settings.routes.js';
 
 const app = express();
 
@@ -48,6 +50,8 @@ app.use('/api/v1/dashboard', dashboardRoutes);
 app.use('/api/v1/notifications', notificationRoutes);
 app.use('/api/v1/attachments', attachmentRoutes);
 app.use('/api/v1/users', usersRoutes);
+app.use('/api/v1/roles', rolesRoutes);
+app.use('/api/v1/settings', settingsRoutes);
 
 // Middleware d'erreur (provisoire)
 // eslint-disable-next-line no-unused-vars

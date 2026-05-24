@@ -49,8 +49,6 @@ model User {
   updatedAt     DateTime         @updatedAt
 }
 
-
-
 // ================== CLIENTS ==================
 model Client {
   id        Int       @id @default(autoincrement())
@@ -274,3 +272,8 @@ model Notification {
   @@index([userId, read])
 }
 
+model Setting {
+  id    Int    @id @default(autoincrement())
+  key   String @unique
+  value String
+}

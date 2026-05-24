@@ -72,7 +72,19 @@ export async function findById(id) {
     where: { id },
     include: {
       assignees: { include: { user: { select: { id: true, firstName: true, lastName: true } } } },
-      comments: { include: { user: { select: { id: true, firstName: true, lastName: true } } } },
+      comments: {
+        include: {
+          user: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              role: { select: { name: true } }, // ← ajouté
+            },
+          },
+        },
+        orderBy: { createdAt: 'asc' },
+      },
       dependencies: { include: { dependsOn: true } },
       subTasks: true,
     },
@@ -159,7 +171,17 @@ export async function removeTask(id) {
 export async function addComment(taskId, userId, text) {
   const comment = await prisma.taskComment.create({
     data: { text, taskId, userId },
-    include: { task: { include: { assignees: true } } },
+    include: {
+      user: {
+        select: {
+          id: true,
+          firstName: true,
+          lastName: true,
+          role: { select: { name: true } }, // ← ajouté
+        },
+      },
+      task: { include: { assignees: true } },
+    },
   });
 
   // Notifier les autres assignés (sauf l'auteur du commentaire)

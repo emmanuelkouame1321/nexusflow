@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import api from '../../../services/api';
 import {
   DndContext,
-  pointerWithin, // ← détection la plus réactive pour le drop
+  pointerWithin,
   useSensor,
   useSensors,
   PointerSensor,
@@ -14,6 +14,8 @@ import { CSS } from '@dnd-kit/utilities';
 import StatusBadge from '../../../components/shared/StatusBadge';
 import FormModal from '../../../components/shared/FormModal';
 import { toast } from 'react-toastify';
+import TaskModal from '../../../components/tasks/TaskModal';
+import TaskComments from '../../../components/tasks/TaskComments';
 
 const STATUSES = ['todo', 'in_progress', 'in_review', 'done'];
 
@@ -22,6 +24,10 @@ export default function ProjectKanbanTab({ projectId }) {
   const [activeId, setActiveId] = useState(null);
   const [showForm, setShowForm] = useState(false);
   const [editingTask, setEditingTask] = useState(null);
+  const [commentTaskId, setCommentTaskId] = useState(null); // ID de la tâche pour les commentaires
+  const canCreateTask = useHasRole('admin', 'manager', 'project_manager');
+  const canEditTask = useHasRole('admin', 'manager', 'project_manager');
+  const canDeleteTask = useHasRole('admin', 'manager');
 
   // Capteur ultra‑réactif : activation sans distance minimale
   const sensors = useSensors(
@@ -103,12 +109,14 @@ export default function ProjectKanbanTab({ projectId }) {
     <div>
       <div className="flex justify-between items-center mb-4">
         <h3 className="text-lg font-semibold text-gray-800">Kanban</h3>
+      {canCreateTask && (
         <button
           onClick={() => { setEditingTask(null); setShowForm(true); }}
           className="px-3 py-1.5 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700"
         >
           + Nouvelle tâche
         </button>
+      )}
       </div>
 
       <DndContext
@@ -125,6 +133,7 @@ export default function ProjectKanbanTab({ projectId }) {
                   key={task.id}
                   task={task}
                   onClick={() => { setEditingTask(task); setShowForm(true); }}
+                  onComment={(taskId) => setCommentTaskId(taskId)}
                 />
               ))}
             </KanbanColumn>
@@ -138,12 +147,23 @@ export default function ProjectKanbanTab({ projectId }) {
       </DndContext>
 
       {showForm && (
-        <TaskFormModal
+        <TaskModal
           task={editingTask}
           projectId={projectId}
           onClose={() => setShowForm(false)}
           onSave={handleSaveTask}
         />
+      )}
+
+      {/* Modale des commentaires */}
+      {commentTaskId && (
+        <FormModal
+          isOpen={true}
+          onClose={() => setCommentTaskId(null)}
+          title="Commentaires de la tâche"
+        >
+          <TaskComments taskId={commentTaskId} />
+        </FormModal>
       )}
     </div>
   );
@@ -168,20 +188,11 @@ function KanbanColumn({ status, children }) {
   );
 }
 
-// Carte draggable – réarrangement instantané
-function SortableTask({ task, onClick }) {
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging,
-  } = useSortable({ id: task.id });
-
+// Carte draggable – réarrangement instantané + boutons d'action
+function SortableTask({ task, onClick, onComment }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: task.id });
   const style = {
     transform: CSS.Transform.toString(transform),
-    // 0s pendant le drag → réaction immédiate, sinon transition fluide
     transition: isDragging ? '0s' : transition || 'transform 200ms ease',
     opacity: isDragging ? 0.3 : 1,
   };
@@ -192,8 +203,7 @@ function SortableTask({ task, onClick }) {
       style={style}
       {...attributes}
       {...listeners}
-      onClick={onClick}
-      className="bg-white p-2 rounded-lg shadow-sm border border-gray-200 cursor-grab text-sm hover:border-indigo-300 active:cursor-grabbing"
+      className="bg-white p-2 rounded-lg shadow-sm border border-gray-200 cursor-grab text-sm hover:border-indigo-300 active:cursor-grabbing group"
     >
       <div className="font-medium truncate">{task.title}</div>
       {task.assignees?.length > 0 && (
@@ -201,6 +211,21 @@ function SortableTask({ task, onClick }) {
           {task.assignees.map((a) => a.user?.firstName).join(', ')}
         </div>
       )}
+      {/* Boutons d'action (apparaissent au survol) */}
+      <div className="flex gap-2 mt-2 opacity-0 group-hover:opacity-100 transition-opacity">
+        <button
+          onClick={(e) => { e.stopPropagation(); onClick(); }}
+          className="text-xs text-blue-600 hover:text-blue-800"
+        >
+          Modifier
+        </button>
+        <button
+          onClick={(e) => { e.stopPropagation(); onComment(task.id); }}
+          className="text-xs text-indigo-600 hover:text-indigo-800"
+        >
+          Commentaires
+        </button>
+      </div>
     </div>
   );
 }
@@ -212,108 +237,5 @@ function TaskCard({ task }) {
     <div className="bg-white p-2 rounded-lg shadow-lg border border-indigo-300 text-sm w-48">
       <div className="font-medium">{task.title}</div>
     </div>
-  );
-}
-
-// Formulaire de création/édition (identique à celui que tu as déjà)
-function TaskFormModal({ task, projectId, onClose, onSave }) {
-  const [form, setForm] = useState({
-    title: task?.title || '',
-    description: task?.description || '',
-    priority: task?.priority || 'medium',
-    status: task?.status || 'todo',
-    dueDate: task?.dueDate ? task.dueDate.slice(0, 10) : '',
-    estimatedHours: task?.estimatedHours || '',
-    assigneeIds: task?.assignees?.map((a) => a.userId) || [],
-  });
-  const [users, setUsers] = useState([]);
-
-  useEffect(() => {
-    api.get('/users').then(({ data }) => setUsers(data.users ?? [])).catch(() => {});
-  }, []);
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    const payload = {
-      ...form,
-      dueDate: form.dueDate || null,
-      estimatedHours: form.estimatedHours ? parseFloat(form.estimatedHours) : null,
-    };
-    onSave(payload);
-  };
-
-  return (
-    <FormModal isOpen={true} onClose={onClose} title={task ? 'Modifier la tâche' : 'Nouvelle tâche'}>
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Titre</label>
-          <input type="text" required value={form.title}
-            onChange={(e) => setForm({ ...form, title: e.target.value })}
-            className="block w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm" />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
-          <textarea rows={2} value={form.description}
-            onChange={(e) => setForm({ ...form, description: e.target.value })}
-            className="block w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm" />
-        </div>
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Statut</label>
-            <select value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value })}
-              className="block w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm">
-              <option value="todo">À faire</option>
-              <option value="in_progress">En cours</option>
-              <option value="in_review">En révision</option>
-              <option value="done">Terminé</option>
-            </select>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Priorité</label>
-            <select value={form.priority} onChange={(e) => setForm({ ...form, priority: e.target.value })}
-              className="block w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm">
-              <option value="low">Basse</option>
-              <option value="medium">Moyenne</option>
-              <option value="high">Haute</option>
-              <option value="urgent">Urgente</option>
-            </select>
-          </div>
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Échéance</label>
-          <input type="date" value={form.dueDate}
-            onChange={(e) => setForm({ ...form, dueDate: e.target.value })}
-            className="block w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm" />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Heures estimées</label>
-          <input type="number" step="0.5" value={form.estimatedHours}
-            onChange={(e) => setForm({ ...form, estimatedHours: e.target.value })}
-            className="block w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm" />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">Assignés</label>
-          <div className="max-h-32 overflow-y-auto space-y-1">
-            {users.map((user) => (
-              <label key={user.id} className="flex items-center gap-2 text-sm">
-                <input type="checkbox" checked={form.assigneeIds.includes(user.id)}
-                  onChange={() => setForm((prev) => ({
-                    ...prev,
-                    assigneeIds: prev.assigneeIds.includes(user.id)
-                      ? prev.assigneeIds.filter((id) => id !== user.id)
-                      : [...prev.assigneeIds, user.id],
-                  }))}
-                  className="rounded text-indigo-600" />
-                {user.firstName} {user.lastName}
-              </label>
-            ))}
-          </div>
-        </div>
-        <div className="flex justify-end gap-3 pt-2">
-          <button type="button" onClick={onClose} className="px-4 py-2.5 border border-gray-300 rounded-lg text-gray-700 text-sm">Annuler</button>
-          <button type="submit" className="px-4 py-2.5 bg-indigo-600 text-white rounded-lg text-sm font-medium">Enregistrer</button>
-        </div>
-      </form>
-    </FormModal>
   );
 }

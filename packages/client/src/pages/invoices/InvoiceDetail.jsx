@@ -9,6 +9,7 @@ import StatusBadge from '../../components/shared/StatusBadge';
 import DataTable from '../../components/shared/DataTable';
 import FormModal from '../../components/shared/FormModal';
 import ConfirmDialog from '../../components/shared/ConfirmDialog';
+import { useHasRole } from '../../hooks/useHasRole'; // ← ajouté
 
 export default function InvoiceDetail() {
   const { id } = useParams();
@@ -16,28 +17,19 @@ export default function InvoiceDetail() {
   const [invoice, setInvoice] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showPaymentForm, setShowPaymentForm] = useState(false);
-  const [showRemindModal, setShowRemindModal] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [paymentForm, setPaymentForm] = useState({ amount: '', method: 'virement', reference: '', date: '' });
-// État commun pour la modale d'envoi
   const [sending, setSending] = useState(false);
-  const [emailModal, setEmailModal] = useState({
-    open: false,
-    mode: 'send', // 'send' ou 'remind'
-  });
+  const [emailModal, setEmailModal] = useState({ open: false, mode: 'send' });
   const [emailInput, setEmailInput] = useState('');
-  // Ouvrir la modale pour "Envoyer"
-  const openSendModal = () => {
-    setEmailInput(invoice.client?.email || '');
-    setEmailModal({ open: true, mode: 'send' });
-  };
-  // Ouvrir la modale pour "Relancer"
-  const openRemindModal = () => {
-    setEmailInput(invoice.client?.email || '');
-    setEmailModal({ open: true, mode: 'remind' });
-  };
 
+  // Vérification des rôles
+  const canAddPayment = useHasRole('admin', 'manager', 'commercial');
+  const canSend = useHasRole('admin', 'manager', 'commercial');
+  const canRemind = useHasRole('admin', 'manager');
+  const canDelete = useHasRole('admin');
 
+  // Récupération de la facture
   useEffect(() => {
     const fetchInvoice = async () => {
       try {
@@ -52,13 +44,14 @@ export default function InvoiceDetail() {
     fetchInvoice();
   }, [id]);
 
-    // Pré-remplir la référence du paiement avec le numéro de la facture
-    useEffect(() => {
-      if (invoice) {
-        setPaymentForm((prev) => ({ ...prev, reference: invoice.reference }));
-      }
-    }, [invoice]);
+  // Pré-remplir la référence du paiement
+  useEffect(() => {
+    if (invoice) {
+      setPaymentForm((prev) => ({ ...prev, reference: invoice.reference }));
+    }
+  }, [invoice]);
 
+  // Ajouter un paiement
   const handleAddPayment = async (e) => {
     e.preventDefault();
     try {
@@ -74,37 +67,48 @@ export default function InvoiceDetail() {
       const { data } = await api.get(`/invoices/${id}`);
       setInvoice(data);
     } catch (err) {
-      toast.error('paiement non enregistré.');
+      toast.error('Erreur lors de l\'enregistrement du paiement.');
     }
   };
 
+  // Ouvrir la modale d'envoi / relance
+  const openSendModal = () => {
+    if (!invoice) return;
+    setEmailInput(invoice.client?.email || '');
+    setEmailModal({ open: true, mode: 'send' });
+  };
+  const openRemindModal = () => {
+    if (!invoice) return;
+    setEmailInput(invoice.client?.email || '');
+    setEmailModal({ open: true, mode: 'remind' });
+  };
 
-// Action exécutée quand l'utilisateur clique sur le bouton d'envoi dans la modale
-const handleSendOrRemind = async () => {
-  const to = emailInput;
-  if (!to) {
-    toast.error('Veuillez entrer une adresse email.');
-    return;
-  }
-  setSending(true);
-  try {
-    if (emailModal.mode === 'remind') {
-      await api.post(`/invoices/${invoice.id}/remind`, { email: to });
-      toast.success('Relance envoyée.');
-    } else {
-      await api.post(`/invoices/${invoice.id}/send`, { email: to });
-      toast.success('Facture envoyée par email.');
+  // Action dans la modale (envoi ou relance)
+  const handleSendOrRemind = async () => {
+    const to = emailInput;
+    if (!to) {
+      toast.error('Veuillez entrer une adresse email.');
+      return;
     }
-    // Recharger la facture
-    const { data } = await api.get(`/invoices/${id}`);
-    setInvoice(data);
-    setEmailModal({ open: false, mode: 'send' });
-  } catch (err) {
-    toast.error('Erreur lors de l\'envoi.');
-  } finally {
-    setSending(false);
-  }
-};
+    setSending(true);
+    try {
+      if (emailModal.mode === 'remind') {
+        await api.post(`/invoices/${invoice.id}/remind`, { email: to });
+        toast.success('Relance envoyée.');
+      } else {
+        await api.post(`/invoices/${invoice.id}/send`, { email: to });
+        toast.success('Facture envoyée par email.');
+      }
+      // Recharger la facture
+      const { data } = await api.get(`/invoices/${id}`);
+      setInvoice(data);
+      setEmailModal({ open: false, mode: 'send' });
+    } catch (err) {
+      toast.error('Erreur lors de l\'envoi.');
+    } finally {
+      setSending(false);
+    }
+  };
 
   const handleDownloadPDF = () => {
     window.open(`/api/v1/invoices/${invoice.id}/pdf`, '_blank');
@@ -172,65 +176,31 @@ const handleSendOrRemind = async () => {
           <StatusBadge status={invoice.status} size="sm" />
         </div>
         <div className="flex flex-wrap gap-2 mt-2 sm:mt-0">
-          <button onClick={() => setShowPaymentForm(true)} className="px-3 py-2 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 transition-colors shadow-sm">
-            Ajouter un paiement
-        </button>
-          <button onClick={openSendModal} disabled={sending}
-            className="px-3 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 disabled:opacity-50">
-            Envoyer par email
-          </button>
-          <button onClick={openRemindModal}
-            className="px-3 py-2 bg-orange-600 text-white text-sm font-medium rounded-lg hover:bg-orange-700">
-            Relancer
-          </button>
-          {emailModal.open && (
-            <FormModal
-              isOpen={true}
-              onClose={() => setEmailModal({ ...emailModal, open: false })}
-              title={emailModal.mode === 'remind' ? 'Relancer par email' : 'Envoyer la facture par email'}
-            >
-              <div className="space-y-4">
-                <p className="text-sm text-gray-600">
-                  {emailModal.mode === 'remind'
-                    ? `Relance pour la facture ${invoice.reference}.`
-                    : `Envoyer la facture ${invoice.reference} au destinataire suivant :`}
-                </p>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Adresse email</label>
-                  <input
-                    type="email"
-                    value={emailInput}
-                    onChange={(e) => setEmailInput(e.target.value)}
-                    placeholder="email@exemple.com"
-                    className="block w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm"
-                  />
-                </div>
-                <div className="flex justify-end gap-3">
-                  <button
-                    onClick={() => setEmailModal({ ...emailModal, open: false })}
-                    className="px-4 py-2.5 border border-gray-300 rounded-lg text-gray-700 text-sm font-medium"
-                  >
-                    Annuler
-                  </button>
-                  <button
-                    onClick={handleSendOrRemind}
-                    disabled={sending}
-                    className={`px-4 py-2.5 text-white rounded-lg text-sm font-medium ${
-                      emailModal.mode === 'remind' ? 'bg-orange-600 hover:bg-orange-700' : 'bg-indigo-600 hover:bg-indigo-700'
-                    } disabled:opacity-50`}
-                  >
-                    {sending ? 'Envoi...' : emailModal.mode === 'remind' ? 'Envoyer la relance' : 'Envoyer'}
-                  </button>
-                </div>
-              </div>
-            </FormModal>
+          {canAddPayment && (
+            <button onClick={() => setShowPaymentForm(true)} className="px-3 py-2 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 transition-colors shadow-sm">
+              Ajouter un paiement
+            </button>
+          )}
+          {canSend && (
+            <button onClick={openSendModal} disabled={sending}
+              className="px-3 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 disabled:opacity-50">
+              Envoyer par email
+            </button>
+          )}
+          {canRemind && (
+            <button onClick={openRemindModal}
+              className="px-3 py-2 bg-orange-600 text-white text-sm font-medium rounded-lg hover:bg-orange-700">
+              Relancer
+            </button>
           )}
           <button onClick={handleDownloadPDF} className="px-3 py-2 bg-gray-600 text-white text-sm font-medium rounded-lg hover:bg-gray-700 transition-colors shadow-sm">
             PDF
           </button>
-          <button onClick={() => setShowDeleteConfirm(true)} className="px-3 py-2 bg-red-600 text-white text-sm font-medium rounded-lg hover:bg-red-700 transition-colors shadow-sm">
-            Supprimer
-          </button>
+          {canDelete && (
+            <button onClick={() => setShowDeleteConfirm(true)} className="px-3 py-2 bg-red-600 text-white text-sm font-medium rounded-lg hover:bg-red-700 transition-colors shadow-sm">
+              Supprimer
+            </button>
+          )}
         </div>
       </div>
 
@@ -324,23 +294,44 @@ const handleSendOrRemind = async () => {
         </FormModal>
       )}
 
-      {/* Modale relance */}
-      {showRemindModal && (
-        <FormModal isOpen={true} onClose={() => setShowRemindModal(false)} title="Relancer par email">
+      {/* Modale envoi / relance unifiée */}
+      {emailModal.open && (
+        <FormModal
+          isOpen={true}
+          onClose={() => setEmailModal({ ...emailModal, open: false })}
+          title={emailModal.mode === 'remind' ? 'Relancer par email' : 'Envoyer la facture par email'}
+        >
           <div className="space-y-4">
-            <p className="text-sm text-gray-600">Envoyer une relance pour la facture {invoice.reference}.</p>
+            <p className="text-sm text-gray-600">
+              {emailModal.mode === 'remind'
+                ? `Relance pour la facture ${invoice.reference}.`
+                : `Envoyer la facture ${invoice.reference} au destinataire suivant :`}
+            </p>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Adresse email</label>
-              <input type="email" value={remindEmail}
-                onChange={(e) => setRemindEmail(e.target.value)}
-                placeholder={invoice.client?.email || 'email@exemple.com'}
-                className="block w-full px-3 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm" />
-              <p className="text-xs text-gray-400 mt-1">Laissez vide pour utiliser l'email du client.</p>
+              <input
+                type="email"
+                value={emailInput}
+                onChange={(e) => setEmailInput(e.target.value)}
+                placeholder="email@exemple.com"
+                className="block w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm"
+              />
             </div>
             <div className="flex justify-end gap-3">
-              <button onClick={() => setShowRemindModal(false)} className="px-4 py-2.5 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 text-sm font-medium">Annuler</button>
-              <button onClick={handleRemind} disabled={sending} className="px-4 py-2.5 bg-orange-600 text-white rounded-lg hover:bg-orange-700 disabled:opacity-50 text-sm font-medium">
-                {sending ? 'Envoi...' : 'Envoyer la relance'}
+              <button
+                onClick={() => setEmailModal({ ...emailModal, open: false })}
+                className="px-4 py-2.5 border border-gray-300 rounded-lg text-gray-700 text-sm font-medium"
+              >
+                Annuler
+              </button>
+              <button
+                onClick={handleSendOrRemind}
+                disabled={sending}
+                className={`px-4 py-2.5 text-white rounded-lg text-sm font-medium ${
+                  emailModal.mode === 'remind' ? 'bg-orange-600 hover:bg-orange-700' : 'bg-indigo-600 hover:bg-indigo-700'
+                } disabled:opacity-50`}
+              >
+                {sending ? 'Envoi...' : emailModal.mode === 'remind' ? 'Envoyer la relance' : 'Envoyer'}
               </button>
             </div>
           </div>

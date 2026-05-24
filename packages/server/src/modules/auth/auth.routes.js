@@ -18,5 +18,7 @@ router.post('/login', validate(loginSchema), authController.login);
 router.post('/refresh', authController.refresh);
 router.post('/logout', authenticate, authController.logout);
 router.get('/me', authenticate, authController.getMe);
+router.put('/me', authenticate, authController.updateMe);
+router.put('/change-password', authenticate, authController.changePassword);
 
 export default router;

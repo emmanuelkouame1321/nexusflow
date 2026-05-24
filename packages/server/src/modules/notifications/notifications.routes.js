@@ -7,11 +7,14 @@ router.use(authenticate);
 
 router.get('/', async (req, res, next) => {
   try {
-    const notifications = await notificationService.getUserNotifications(
+    const { unread, page, limit } = req.query;
+    const data = await notificationService.getUserNotifications(
       req.user.id,
-      req.query.unread === 'true',
+      unread === 'true',
+      parseInt(page, 10) || 1,
+      parseInt(limit, 10) || 20,
     );
-    res.json(notifications);
+    res.json(data);
   } catch (error) {
     next(error);
   }

@@ -40,8 +40,6 @@ router.put(
   '/:id',
   authorize('admin', 'manager', 'project_manager'),
   (req, res, next) => {
-    console.log('PUT /tasks/:id – body reçu :', JSON.stringify(req.body));
-    console.log('Type de status :', typeof req.body.status);
     next();
   },
   validate(updateTaskSchema),
